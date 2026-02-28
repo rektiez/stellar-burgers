@@ -3,8 +3,32 @@ import { TIngredient, TOrder, TOrdersData, TUser } from './types';
 
 const URL = process.env.BURGER_API_URL;
 
-const checkResponse = <T>(res: Response): Promise<T> =>
-  res.ok ? res.json() : res.json().then((err) => Promise.reject(err));
+const checkResponse = <T>(res: Response): Promise<T> => {
+  if (res.status === 401) {
+    return Promise.reject(new Error('401: Неверный email или пароль'));
+  }
+  if (res.status === 400) {
+    return Promise.reject(new Error('400: Неверные данные'));
+  }
+  if (res.status === 403) {
+    return Promise.reject(new Error('403: Доступ запрещён'));
+  }
+  if (res.status === 404) {
+    return Promise.reject(new Error('404: Ресурс не найден'));
+  }
+  if (res.status === 500) {
+    return Promise.reject(new Error('500: Ошибка сервера'));
+  }
+  if (!res.ok) {
+    return Promise.reject(new Error(`HTTP ${res.status}: ${res.statusText}`));
+  }
+  return res.json().then((data) => {
+    if (!data.success) {
+      return Promise.reject(new Error(data.message || 'Ошибка запроса'));
+    }
+    return data;
+  });
+};
 
 type TServerResponse<T> = {
   success: boolean;
@@ -43,7 +67,10 @@ export const fetchWithRefresh = async <T>(
     const res = await fetch(url, options);
     return await checkResponse<T>(res);
   } catch (err) {
-    if ((err as { message: string }).message === 'jwt expired') {
+    if (
+      (err as { message: string }).message === 'jwt expired' ||
+      (err as { message: string }).message?.includes('401')
+    ) {
       const refreshData = await refreshToken();
       if (options.headers) {
         (options.headers as { [key: string]: string }).authorization =
