@@ -24,7 +24,7 @@ import { clearError } from '../../services/slices/user-slice';
 
 import { useDispatch } from '../../services/store';
 import { fetchUser } from '../../services/slices/user-slice';
-import { fetchIngredients } from '../../services/slices/ingridients-slice';
+import { fetchIngredients } from '../../services/slices/ingredients-slice';
 
 import '../../index.css';
 import styles from './app.module.css';
