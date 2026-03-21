@@ -42,7 +42,7 @@ type TFeedsResponse = {
   totalToday: number;
 };
 
-const initialState: TOrderState = {
+export const initialState: TOrderState = {
   orderData: null,
   orderNumber: null,
   loading: false,
