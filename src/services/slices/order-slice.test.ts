@@ -10,20 +10,54 @@ import ordersReducer, {
 } from './order-slice';
 import { TOrder } from '../../utils/types';
 
+const ERROR_MESSAGES = {
+  PREVIOUS: 'Предыдущая ошибка',
+  GENERIC: 'Some error',
+  CREATE_ORDER: 'Ошибка заказа',
+  FEEDS: 'Ошибка загрузки лент',
+  ORDERS: 'Ошибка загрузки заказов',
+  NOT_FOUND: 'Заказ не найден',
+  NETWORK: 'Network error',
+} as const;
+
+const ORDER_DATA = {
+  ID: '6789abcdef012345',
+  STATUS: 'done',
+  NAME: 'Краторный био-бургер',
+  CREATED_AT: '2024-01-15T12:00:00.000Z',
+  UPDATED_AT: '2024-01-15T12:00:00.000Z',
+  NUMBER: 12345,
+  NUMBER_ALT: 12346,
+} as const;
+
+const INGREDIENT_IDS = {
+  BUN: '643d69a5c3f7b9001cfa093c',
+  MAIN: '643d69a5c3f7b9001cfa0941',
+} as const;
+
+const FEEDS_DATA = {
+  TOTAL: 100,
+  TOTAL_TODAY: 10,
+} as const;
+
+const ACTION_TYPES = {
+  UNKNOWN: 'unknown',
+} as const;
+
 describe('orderSlice', () => {
   const mockOrder: TOrder = {
-    _id: '6789abcdef012345',
-    status: 'done',
-    name: 'Краторный био-бургер',
-    createdAt: '2024-01-15T12:00:00.000Z',
-    updatedAt: '2024-01-15T12:00:00.000Z',
-    number: 12345,
-    ingredients: ['643d69a5c3f7b9001cfa093c', '643d69a5c3f7b9001cfa0941', '643d69a5c3f7b9001cfa093c']
+    _id: ORDER_DATA.ID,
+    status: ORDER_DATA.STATUS,
+    name: ORDER_DATA.NAME,
+    createdAt: ORDER_DATA.CREATED_AT,
+    updatedAt: ORDER_DATA.UPDATED_AT,
+    number: ORDER_DATA.NUMBER,
+    ingredients: [INGREDIENT_IDS.BUN, INGREDIENT_IDS.MAIN, INGREDIENT_IDS.BUN],
   };
 
   describe('Initial state', () => {
     it('должен возвращать начальное состояние', () => {
-      expect(ordersReducer(undefined, { type: 'unknown' })).toEqual(initialState);
+      expect(ordersReducer(undefined, { type: ACTION_TYPES.UNKNOWN })).toEqual(initialState);
     });
 
     it('должен иметь правильную структуру начального состояния', () => {
@@ -35,7 +69,7 @@ describe('orderSlice', () => {
         orders: [],
         total: 0,
         totalToday: 0,
-        currentOrder: null
+        currentOrder: null,
       });
     });
   });
@@ -44,7 +78,7 @@ describe('orderSlice', () => {
     it('должен очищать currentOrder', () => {
       const stateWithOrder = {
         ...initialState,
-        currentOrder: mockOrder
+        currentOrder: mockOrder,
       };
       const result = ordersReducer(stateWithOrder, clearCurrentOrder());
 
@@ -57,9 +91,9 @@ describe('orderSlice', () => {
       const stateWithData = {
         ...initialState,
         orderData: mockOrder,
-        orderNumber: 12345,
+        orderNumber: ORDER_DATA.NUMBER,
         loading: true,
-        error: 'Some error'
+        error: ERROR_MESSAGES.GENERIC,
       };
       const result = ordersReducer(stateWithData, clearOrder());
 
@@ -82,24 +116,24 @@ describe('orderSlice', () => {
     it('должен сохранять заказ и номер заказа при fulfilled', () => {
       const action = {
         type: createOrder.fulfilled.type,
-        payload: mockOrder
+        payload: mockOrder,
       };
       const result = ordersReducer(initialState, action);
 
       expect(result.loading).toBe(false);
       expect(result.orderData).toEqual(mockOrder);
-      expect(result.orderNumber).toBe(12345);
+      expect(result.orderNumber).toBe(ORDER_DATA.NUMBER);
     });
 
     it('должен устанавливать ошибку при rejected', () => {
       const action = {
         type: createOrder.rejected.type,
-        payload: 'Ошибка заказа'
+        payload: ERROR_MESSAGES.CREATE_ORDER,
       };
       const result = ordersReducer(initialState, action);
 
       expect(result.loading).toBe(false);
-      expect(result.error).toBe('Ошибка заказа');
+      expect(result.error).toBe(ERROR_MESSAGES.CREATE_ORDER);
     });
   });
 
@@ -107,7 +141,7 @@ describe('orderSlice', () => {
     it('должен сбрасывать ошибку при pending', () => {
       const stateWithError = {
         ...initialState,
-        error: 'Предыдущая ошибка'
+        error: ERROR_MESSAGES.PREVIOUS,
       };
       const action = { type: getFeeds.pending.type };
       const result = ordersReducer(stateWithError, action);
@@ -120,25 +154,25 @@ describe('orderSlice', () => {
         type: getFeeds.fulfilled.type,
         payload: {
           orders: [mockOrder],
-          total: 100,
-          totalToday: 10
-        }
+          total: FEEDS_DATA.TOTAL,
+          totalToday: FEEDS_DATA.TOTAL_TODAY,
+        },
       };
       const result = ordersReducer(initialState, action);
 
       expect(result.orders).toEqual([mockOrder]);
-      expect(result.total).toBe(100);
-      expect(result.totalToday).toBe(10);
+      expect(result.total).toBe(FEEDS_DATA.TOTAL);
+      expect(result.totalToday).toBe(FEEDS_DATA.TOTAL_TODAY);
     });
 
     it('должен устанавливать ошибку при rejected', () => {
       const action = {
         type: getFeeds.rejected.type,
-        payload: 'Ошибка загрузки лент'
+        payload: ERROR_MESSAGES.FEEDS,
       };
       const result = ordersReducer(initialState, action);
 
-      expect(result.error).toBe('Ошибка загрузки лент');
+      expect(result.error).toBe(ERROR_MESSAGES.FEEDS);
     });
   });
 
@@ -146,7 +180,7 @@ describe('orderSlice', () => {
     it('должен сбрасывать ошибку при pending', () => {
       const stateWithError = {
         ...initialState,
-        error: 'Предыдущая ошибка'
+        error: ERROR_MESSAGES.PREVIOUS,
       };
       const action = { type: getOrders.pending.type };
       const result = ordersReducer(stateWithError, action);
@@ -157,7 +191,7 @@ describe('orderSlice', () => {
     it('должен сохранять пользовательские заказы при fulfilled', () => {
       const action = {
         type: getOrders.fulfilled.type,
-        payload: [mockOrder, { ...mockOrder, number: 12346 }]
+        payload: [mockOrder, { ...mockOrder, number: ORDER_DATA.NUMBER_ALT }],
       };
       const result = ordersReducer(initialState, action);
 
@@ -168,11 +202,11 @@ describe('orderSlice', () => {
     it('должен устанавливать ошибку при rejected', () => {
       const action = {
         type: getOrders.rejected.type,
-        payload: 'Ошибка загрузки заказов'
+        payload: ERROR_MESSAGES.ORDERS,
       };
       const result = ordersReducer(initialState, action);
 
-      expect(result.error).toBe('Ошибка загрузки заказов');
+      expect(result.error).toBe(ERROR_MESSAGES.ORDERS);
     });
   });
 
@@ -180,7 +214,7 @@ describe('orderSlice', () => {
     it('должен сбрасывать ошибку при pending', () => {
       const stateWithError = {
         ...initialState,
-        error: 'Предыдущая ошибка'
+        error: ERROR_MESSAGES.PREVIOUS,
       };
       const action = { type: getOrderByNumber.pending.type };
       const result = ordersReducer(stateWithError, action);
@@ -191,7 +225,7 @@ describe('orderSlice', () => {
     it('должен сохранять текущий заказ при fulfilled', () => {
       const action = {
         type: getOrderByNumber.fulfilled.type,
-        payload: { orders: [mockOrder] }
+        payload: { orders: [mockOrder] },
       };
       const result = ordersReducer(initialState, action);
 
@@ -201,7 +235,7 @@ describe('orderSlice', () => {
     it('должен устанавливать currentOrder в null если заказов нет', () => {
       const action = {
         type: getOrderByNumber.fulfilled.type,
-        payload: { orders: [] }
+        payload: { orders: [] },
       };
       const result = ordersReducer(initialState, action);
 
@@ -211,11 +245,11 @@ describe('orderSlice', () => {
     it('должен устанавливать ошибку при rejected', () => {
       const action = {
         type: getOrderByNumber.rejected.type,
-        payload: 'Заказ не найден'
+        payload: ERROR_MESSAGES.NOT_FOUND,
       };
       const result = ordersReducer(initialState, action);
 
-      expect(result.error).toBe('Заказ не найден');
+      expect(result.error).toBe(ERROR_MESSAGES.NOT_FOUND);
     });
   });
 
@@ -223,36 +257,32 @@ describe('orderSlice', () => {
     it('должен корректно обрабатывать весь цикл: pending -> fulfilled', () => {
       let state = initialState;
 
-      // Начало запроса
       state = ordersReducer(state, { type: createOrder.pending.type });
       expect(state.loading).toBe(true);
       expect(state.error).toBeNull();
       expect(state.orderData).toBeNull();
 
-      // Успешный ответ
       state = ordersReducer(state, {
         type: createOrder.fulfilled.type,
-        payload: mockOrder
+        payload: mockOrder,
       });
       expect(state.loading).toBe(false);
       expect(state.orderData).toEqual(mockOrder);
-      expect(state.orderNumber).toBe(12345);
+      expect(state.orderNumber).toBe(ORDER_DATA.NUMBER);
     });
 
     it('должен корректно обрабатывать цикл с ошибкой: pending -> rejected', () => {
       let state = initialState;
 
-      // Начало запроса
       state = ordersReducer(state, { type: createOrder.pending.type });
       expect(state.loading).toBe(true);
 
-      // Ошибка
       state = ordersReducer(state, {
         type: createOrder.rejected.type,
-        payload: 'Network error'
+        payload: ERROR_MESSAGES.NETWORK,
       });
       expect(state.loading).toBe(false);
-      expect(state.error).toBe('Network error');
+      expect(state.error).toBe(ERROR_MESSAGES.NETWORK);
       expect(state.orderData).toBeNull();
     });
   });
